@@ -26,8 +26,6 @@ function createEmailTransport() {
 }
 
 async function sendGasPriceEmail(gasPrice) {
-    console.log(process.env.EMAIL_ORIGEM_PASSWORD);
-    
     let transporter = createEmailTransport();
 
     let mailOptions = {
@@ -75,6 +73,8 @@ async function checkGasPriceAndSendEmail() {
 }
 
 sendServiceStartEmail();
+checkGasPriceAndSendEmail();
+
 cron.schedule(`*/${intervalInMinutes} * * * *`, () => {
     console.log('Checking gas cost and sending email...');
     checkGasPriceAndSendEmail();
