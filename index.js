@@ -3,7 +3,7 @@ const axios = require('axios');
 const nodemailer = require('nodemailer');
 const cron = require('node-cron');
 const canISendServiceStartEmail = true;
-const intervalInMinutes = 60;
+const intervalInMinutes = 5;
 
 const configRatings = [
     {
@@ -33,6 +33,8 @@ const configRatings = [
         sendEmail: true
     },
 ];
+
+let currentRatingCode = "";
 
 async function getGasPrice() {
     try {
@@ -67,14 +69,16 @@ async function sendGasPriceEmail(gasPrice) {
     let transporter = createEmailTransport();
     let configRating = getConfigRating(gasPrice);
 
+    let emailBody = `The current cost of gas on the Ethereum network is ${gasPrice} Gwei.`;
+
     let mailOptions = {
         from: process.env.EMAIL_ORIGEM_ENDERECO,
         to: process.env.EMAIL_DESTINO_ENDERECO,
         subject: configRating.emailSubject,
-        text: `The current cost of gas on the Ethereum network is ${gasPrice} Gwei.`
+        text: emailBody
     };
 
-    if (configRating.sendEmail) {
+    if (configRating.sendEmail && currentRatingCode !== configRating.code) {
         try {
             let info = await transporter.sendMail(mailOptions);
             logInfo('Email sent: ' + info.response);
@@ -85,8 +89,11 @@ async function sendGasPriceEmail(gasPrice) {
     }
     else
     {
-        logInfo(`The email was skipped. ${configRating.emailSubject} | ${gasPrice} Gwei.`);
+        logInfo(`The email was skipped -> ${emailBody}`);
     }
+
+    currentRatingCode = configRating.code;
+    console.log("currentRatingCode: " + currentRatingCode);
 }
 
 async function sendServiceStartEmail() {
@@ -100,7 +107,7 @@ async function sendServiceStartEmail() {
         from: process.env.EMAIL_ORIGEM_ENDERECO,
         to: process.env.EMAIL_DESTINO_ENDERECO,
         subject: 'The \'Ethereum Gas Price Checker\' service has been started successfully!',
-        text: `You should receive emails with the price of gas on the ethereum network every 60 minutes.`
+        text: `You should receive emails with the price of gas on the ethereum network when price level changes.`
     };
 
     try {
@@ -121,7 +128,21 @@ async function checkGasPriceAndSendEmail() {
 }
 
 function logInfo(info) {
-    console.log(info);
+    console.log(`[${getCurrentDateTime()}] ${info}`);
+}
+
+function getCurrentDateTime() {
+    const now = new Date();
+    
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0'); // Adiciona 1 porque os meses são indexados em 0
+    const day = String(now.getDate()).padStart(2, '0');
+    
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const seconds = String(now.getSeconds()).padStart(2, '0');
+    
+    return `${year}/${month}/${day} ${hours}:${minutes}:${seconds}`;
 }
 
 sendServiceStartEmail();
